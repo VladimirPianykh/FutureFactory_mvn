@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.util.regex.Pattern;
 import com.bpa4j.core.Root;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
@@ -28,15 +29,18 @@ public class FeatureConfigNode extends ClassNode<FeatureConfigNode>{
 		}
 		public FileFeatureConfigPhysicalNode(String className,String basePackage,File projectRoot){
 			super(computeFileLocation(className,basePackage,projectRoot),computePackage(basePackage));
-			//FIXME and this one too
-			if(getLocation().exists()) throw new IllegalStateException("File already exists: "+getLocation().getAbsolutePath());
+			assert !getLocation().exists();
 		}
 		private static String computePackage(String basePackage){
 			return basePackage+".features";
 		}
 		private static File computeFileLocation(String className,String basePackage,File projectRoot){
 			String packagePath=computePackage(basePackage).replace('.','/');
-			return new File(projectRoot,"src/main/java/"+packagePath+"/"+className+".java");
+			File file=new File(projectRoot,packagePath+"/"+className+".java");
+			Pattern reg=Pattern.compile("\\d$");
+			while(file.exists())
+				file=new File(reg.matcher(file.getName()).replaceFirst(r->String.valueOf(Integer.parseInt(r.group(0))+1)));
+			return file;
 		}
 		@Override
 		public void persist(NodeModel<FeatureConfigNode> model){

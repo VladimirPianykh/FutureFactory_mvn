@@ -1,0 +1,22 @@
+package %2$s;
+
+import com.bpa4j.feature.FeatureModel;
+import com.bpa4j.feature.FeatureTransmissionContract;
+
+/**
+ * Auto-generated feature model.
+ */
+public class %1$s implements FeatureModel<FeatureTransmissionContract> {
+	private final FeatureTransmissionContract contract;
+
+	public %1$s(FeatureTransmissionContract contract) {
+		this.contract = contract;
+	}
+
+	@Override
+	public FeatureTransmissionContract getTransmissionContract() {
+		return contract;
+	}
+
+	// Add additional model-specific logic here for %1$s if needed
+}

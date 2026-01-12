@@ -109,16 +109,26 @@ public class EditableNode extends ClassNode<EditableNode>{
 		 */
 		public FileEditablePhysicalNode(String className,String objectName,String basePackage,File projectRoot,Property...properties){
 			super(computeFileLocation(className,basePackage,projectRoot),computePackage(basePackage));
-			// Throw if file already exists. FIXME Can be enhanced with incremental naming.
-			if(getLocation().exists()) throw new IllegalStateException("File already exists: "+getLocation().getAbsolutePath());
+			assert !getLocation().exists();
 		}
 		private static String computePackage(String basePackage){
 			return basePackage+".editables.registered";
 		}
 		private static File computeFileLocation(String className,String basePackage,File projectRoot){
 			String packagePath=computePackage(basePackage).replace('.','/');
-			return new File(projectRoot,"src/main/java/"+packagePath+"/"+className+".java");
+			File file=new File(projectRoot,packagePath+"/"+className+".java");
+			Pattern reg=Pattern.compile("\\d$");
+			while(file.exists())
+				file=new File(reg.matcher(file.getName()).replaceFirst(r->String.valueOf(Integer.parseInt(r.group(0))+1)));
+			return file;
 		}
+		private static Optional<FieldDeclaration> findFieldByTranslation(CompilationUnit cu,String name){
+			return cu.findAll(FieldDeclaration.class).stream().filter(f->f.getAnnotationByName("EditorEntry").isPresent()).filter(f->{
+				Optional<StringLiteralExpr> translation=f.getAnnotationByName("EditorEntry").flatMap(ann->ann.asNormalAnnotationExpr().getPairs().stream().filter(pair->pair.getNameAsString().equals("translation")).findFirst().map(pair->pair.getValue().asStringLiteralExpr()));
+				return translation.isPresent()&&translation.get().asString().equals(name);
+			}).findFirst();
+		}
+
 		@Override
 		public ClassModel<EditableNode> load(){
 			try{
@@ -209,7 +219,6 @@ public class EditableNode extends ClassNode<EditableNode>{
 			}
 		}
 
-		// Specialized methods for fine-grained updates
 		public void changePropertyType(Property p,Property.PropertyType type){
 			try{
 				while(!Files.isWritable(getLocation().toPath()))
@@ -236,7 +245,6 @@ public class EditableNode extends ClassNode<EditableNode>{
 				throw new UncheckedIOException(ex);
 			}
 		}
-
 		public void changePropertyName(String oldName,String newName){
 			try{
 				while(!Files.isWritable(getLocation().toPath()))
@@ -251,7 +259,6 @@ public class EditableNode extends ClassNode<EditableNode>{
 				throw new UncheckedIOException(ex);
 			}
 		}
-
 		public void addProperty(Property property,String varName){
 			try{
 				while(!Files.isWritable(getLocation().toPath()))
@@ -266,7 +273,6 @@ public class EditableNode extends ClassNode<EditableNode>{
 				throw new UncheckedIOException(ex);
 			}
 		}
-
 		public void addProperties(List<Property> properties){
 			try{
 				while(!Files.isWritable(getLocation().toPath()))
@@ -287,7 +293,6 @@ public class EditableNode extends ClassNode<EditableNode>{
 				throw new UncheckedIOException(ex);
 			}
 		}
-
 		public void removeProperty(String propertyName){
 			try{
 				while(!Files.isWritable(getLocation().toPath()))
@@ -302,7 +307,6 @@ public class EditableNode extends ClassNode<EditableNode>{
 				throw new UncheckedIOException(ex);
 			}
 		}
-
 		public void changeObjectName(String objectName,String className){
 			try{
 				while(!Files.isWritable(getLocation().toPath()))
@@ -320,13 +324,6 @@ public class EditableNode extends ClassNode<EditableNode>{
 			}catch(IOException ex){
 				throw new UncheckedIOException(ex);
 			}
-		}
-
-		private Optional<FieldDeclaration> findFieldByTranslation(CompilationUnit cu,String name){
-			return cu.findAll(FieldDeclaration.class).stream().filter(f->f.getAnnotationByName("EditorEntry").isPresent()).filter(f->{
-				Optional<StringLiteralExpr> translation=f.getAnnotationByName("EditorEntry").flatMap(ann->ann.asNormalAnnotationExpr().getPairs().stream().filter(pair->pair.getNameAsString().equals("translation")).findFirst().map(pair->pair.getValue().asStringLiteralExpr()));
-				return translation.isPresent()&&translation.get().asString().equals(name);
-			}).findFirst();
 		}
 	}
 	public static class EditableModel extends ClassModel<EditableNode>{
@@ -347,7 +344,7 @@ public class EditableNode extends ClassNode<EditableNode>{
 	 */
 	public EditableNode(ClassPhysicalNode<EditableNode> physicalNode){
 		super(physicalNode);
-		if(!physicalNode.exists()) throw new IllegalArgumentException("The node "+physicalNode+" is not empty.");
+		if(!physicalNode.exists()) throw new IllegalArgumentException("Physical representation does not exist");
 	}
 
 	/**

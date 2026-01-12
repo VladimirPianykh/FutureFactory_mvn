@@ -667,6 +667,9 @@ class GraphUI{
 			panel.add(new E(e));
 		tab.add(SprintUI.createList(15,panel));
 	}
+	public void close(){
+		//Nothing to close right now.
+	}
 }
 
 public class ProjectGraph{
@@ -784,6 +787,7 @@ public class ProjectGraph{
 				file.delete();
 			}
 			public void persist(NodeModel<NavigatorNode> node) throws IllegalStateException{
+				if(exists()) throw new IllegalStateException("Physical representation already exists: "+file.getAbsolutePath());
 				StringBuilder b=new StringBuilder();
 				NavigatorModel n=(NavigatorModel)node;
 				for(HelpEntry h:n.getEntries()){
@@ -887,13 +891,15 @@ public class ProjectGraph{
 		private final NavigatorPhysicalNode physicalNode;
 		private final NavigatorModel model;
 		public NavigatorNode(NavigatorPhysicalNode physicalNode){
+			if(!physicalNode.exists()) throw new IllegalArgumentException("Physical representation does not exist");
 			model=physicalNode.load();
 			this.physicalNode=physicalNode;
 		}
 		public NavigatorNode(NavigatorPhysicalNode physicalNode,List<HelpEntry> entries){
+			if(physicalNode.exists()) throw new IllegalArgumentException("Physical representation already exists");
 			model=new NavigatorModel(entries);
-			physicalNode.persist(model);
 			this.physicalNode=physicalNode;
+			this.physicalNode.persist(model);
 		}
 		public HelpEntry deleteEntry(String text){
 			HelpEntry deleted=model.deleteEntry(text);
@@ -994,7 +1000,8 @@ public class ProjectGraph{
 		return model.getAllNodes();
 	}
 	public void reload(){
-		//FIXME reload
+		ui.close();
+		load();
 	}
 	private void load(){
 		this.parser=new GraphParser(projectFolder.toPath());

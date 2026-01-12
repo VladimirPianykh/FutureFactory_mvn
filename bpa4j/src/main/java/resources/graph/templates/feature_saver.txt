@@ -1,0 +1,25 @@
+package %2$s;
+
+import com.bpa4j.feature.FeatureSaver;
+import com.bpa4j.feature.FeatureTransmissionContract;
+
+/**
+ * Auto-generated feature saver.
+ */
+public class %1$s implements FeatureSaver<FeatureTransmissionContract> {
+	private final FeatureTransmissionContract contract;
+
+	public %1$s(FeatureTransmissionContract contract) {
+		this.contract = contract;
+	}
+
+	@Override
+	public void save(FeatureTransmissionContract f) {
+		// FIXME: implement saving logic for %1$s
+	}
+
+	@Override
+	public void load(FeatureTransmissionContract f) {
+		// FIXME: implement loading logic for %1$s
+	}
+}

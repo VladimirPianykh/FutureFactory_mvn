@@ -6,6 +6,7 @@ import java.nio.file.Files;
 
 /**
  * @author AI-generated
+ * FIXME implement
  */
 public class EditableGroupNode implements ProjectNode<EditableGroupNode>{
 	public static class EditableGroupPhysicalNode implements PhysicalNode<EditableGroupNode>{
@@ -46,8 +47,15 @@ public class EditableGroupNode implements ProjectNode<EditableGroupNode>{
 	private final NodeModel<EditableGroupNode> model;
 
 	public EditableGroupNode(PhysicalNode<EditableGroupNode> physicalNode){
+		if(!physicalNode.exists()) throw new IllegalArgumentException("Physical representation does not exist");
 		this.physicalNode=physicalNode;
 		this.model=physicalNode.load();
+	}
+	public EditableGroupNode(PhysicalNode<EditableGroupNode> physicalNode,EditableGroupModel model){
+		if(physicalNode.exists()) throw new IllegalArgumentException("Physical representation already exists");
+		this.model=model;
+		this.physicalNode=physicalNode;
+		this.physicalNode.persist(model);
 	}
 
 	@Override

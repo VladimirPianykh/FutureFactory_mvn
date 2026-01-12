@@ -24,7 +24,6 @@ import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import lombok.Getter;
 
 /**
- * Does not have the writing constructor (which writes PhysicalNode to disk) right now.
  * @author AI-generated
  */
 public class RolesNode implements ProjectNode<RolesNode>{
@@ -106,22 +105,22 @@ public class RolesNode implements ProjectNode<RolesNode>{
 		}
 		@Override
 		public void persist(NodeModel<RolesNode> model){
-			if(file.exists()){ throw new IllegalStateException("Physical representation already exists: "+file.getAbsolutePath()); }
-			try{
-				if(file.getParentFile()!=null) file.getParentFile().mkdirs();
-				// Basic implementation - generating empty enum or based on model logic
-				// For now, creating the skeleton to satisfy contract
-				String className=file.getName().replace(".java","");
-				StringBuilder sb=new StringBuilder();
-				sb.append("public enum ").append(className).append(" implements Role {\n");
-				// TODO: Serialize roles from model
-				sb.append(";\n");
-				sb.append("}");
-				Files.writeString(file.toPath(),sb.toString());
-			}catch(IOException ex){
-				throw new UncheckedIOException(ex);
-				
-			}
+			// if(file.exists()){ throw new IllegalStateException("Physical representation already exists: "+file.getAbsolutePath()); }
+			// try{
+			// 	if(file.getParentFile()!=null) file.getParentFile().mkdirs();
+			// 	// Basic implementation - generating empty enum or based on model logic
+			// 	// For now, creating the skeleton to satisfy contract
+			// 	String className=file.getName().replace(".java","");
+			// 	StringBuilder sb=new StringBuilder();
+			// 	sb.append("public enum ").append(className).append(" implements Role {\n");
+			// 	// TODO: Serialize roles from model
+			// 	sb.append(";\n");
+			// 	sb.append("}");
+			// 	Files.writeString(file.toPath(),sb.toString());
+			// }catch(IOException ex){
+			// 	throw new UncheckedIOException(ex);
+			// }
+			throw new UnsupportedOperationException("Physical representation for RolesNode cannot be created.");
 		}
 
 		public void addPermission(String roleName,String permission){
@@ -284,8 +283,15 @@ public class RolesNode implements ProjectNode<RolesNode>{
 	private final RolesPhysicalNode physicalNode;
 	private final RolesModel model;
 	public RolesNode(RolesPhysicalNode physicalNode){
+		if(!physicalNode.exists()) throw new IllegalArgumentException("Physical representation does not exist");
 		this.physicalNode=physicalNode;
 		this.model=physicalNode.load();
+	}
+	public RolesNode(RolesPhysicalNode physicalNode,List<RoleRepresentation> roles){
+		if(physicalNode.exists()) throw new IllegalArgumentException("Physical representation already exists");
+		this.model=new RolesModel(roles);
+		this.physicalNode=physicalNode;
+		this.physicalNode.persist(model);
 	}
 	@Override
 	public PhysicalNode<RolesNode> getPhysicalRepresentation(){

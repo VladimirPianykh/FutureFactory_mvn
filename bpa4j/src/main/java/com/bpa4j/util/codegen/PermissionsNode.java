@@ -15,7 +15,6 @@ import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 
 /**
- * Does not have the writing constructor (which writes PhysicalNode to disk) right now.
  * @author AI-generated
  */
 public class PermissionsNode implements ProjectNode<PermissionsNode>{
@@ -51,13 +50,14 @@ public class PermissionsNode implements ProjectNode<PermissionsNode>{
 		}
 		@Override
 		public void persist(NodeModel<PermissionsNode> model){
-			if(file.exists()){ throw new IllegalStateException("Physical representation already exists: "+file.getAbsolutePath()); }
-			try{
-				if(file.getParentFile()!=null) file.getParentFile().mkdirs();
-				Files.writeString(file.toPath(),"public enum "+file.getName().replace(".java","")+" implements Permission {}");
-			}catch(IOException ex){
-				throw new UncheckedIOException(ex);
-			}
+			if(file.exists()) throw new IllegalStateException("Physical representation already exists: "+file.getAbsolutePath());
+			// try{
+			// 	if(file.getParentFile()!=null) file.getParentFile().mkdirs();
+			// 	Files.writeString(file.toPath(),"public enum "+file.getName().replace(".java","")+" implements Permission {}");
+			// }catch(IOException ex){
+			// 	throw new UncheckedIOException(ex);
+			// }
+			throw new UnsupportedOperationException("Physical representation for PermissionsNode cannot be created.");
 		}
 		@Override
 		public NodeModel<PermissionsNode> load(){
@@ -108,8 +108,15 @@ public class PermissionsNode implements ProjectNode<PermissionsNode>{
 	private final PhysicalNode<PermissionsNode> physicalNode;
 	private final NodeModel<PermissionsNode> model;
 	public PermissionsNode(PhysicalNode<PermissionsNode> physicalNode){
+		if(!physicalNode.exists()) throw new IllegalArgumentException("Physical representation does not exist");
 		this.physicalNode=physicalNode;
 		this.model=physicalNode.load();
+	}
+	public PermissionsNode(PhysicalNode<PermissionsNode> physicalNode,List<String> permissions){
+		if(physicalNode.exists()) throw new IllegalArgumentException("Physical representation already exists");
+		this.model=new PermissionsModel(permissions);
+		this.physicalNode=physicalNode;
+		this.physicalNode.persist(model);
 	}
 	public PhysicalNode<PermissionsNode> getPhysicalRepresentation(){
 		return physicalNode;

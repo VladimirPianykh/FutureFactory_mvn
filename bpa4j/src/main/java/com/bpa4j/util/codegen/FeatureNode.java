@@ -3,6 +3,7 @@ package com.bpa4j.util.codegen;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
+import java.util.regex.Pattern;
 import com.bpa4j.core.Root;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -25,15 +26,17 @@ public class FeatureNode extends ClassNode<FeatureNode>{
 		 */
 		public FileFeaturePhysicalNode(String className,String basePackage,File projectRoot){
 			super(computeFileLocation(className,basePackage,projectRoot),computePackage(basePackage));
-			//FIXME and this one too
-			if(getLocation().exists()) throw new IllegalStateException("File already exists: "+getLocation().getAbsolutePath());
+			assert !getLocation().exists();
 		}
 		private static String computePackage(String basePackage){
 			return basePackage+".features_impl";
 		}
 		private static File computeFileLocation(String className,String basePackage,File projectRoot){
 			String packagePath=computePackage(basePackage).replace('.','/');
-			return new File(projectRoot,"src/main/java/"+packagePath+"/"+className+".java");
+			File file=new File(projectRoot,packagePath+"/"+className+".java");
+			Pattern reg=Pattern.compile("\\d$");
+			while(file.exists())file=new File(reg.matcher(file.getName()).replaceFirst(r->String.valueOf(Integer.parseInt(r.group(0))+1)));
+			return file;
 		}
 		@Override
 		public void persist(NodeModel<FeatureNode> model){
@@ -82,8 +85,7 @@ public class FeatureNode extends ClassNode<FeatureNode>{
 	 */
 	public FeatureNode(FeaturePhysicalNode physicalNode,String name){
 		super(physicalNode);
-		//FIXME exceptions like this might need `physicalNode.toString()` usage to provide more info
-		if(physicalNode.exists())throw new IllegalArgumentException("Physical node is not empty.");
+		if(physicalNode.exists())throw new IllegalArgumentException("Physical node"+physicalNode+" is not empty.");
 		model=new FeatureModel(name);
 		physicalNode.persist(model);
 	}
