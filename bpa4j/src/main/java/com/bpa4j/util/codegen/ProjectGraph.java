@@ -110,7 +110,7 @@ class GraphModel{
 	 */
 	public EditableNode createEditableNode(ClassPhysicalNode<EditableNode> physicalNode,String name,String objectName,String basePackage,EditableNode.Property...properties) throws IOException{
 		validateEditableNodeName(name);
-		EditableNode node=new EditableNode(physicalNode,name,objectName,basePackage+".editables.registered",properties);
+		EditableNode node=new EditableNode(physicalNode,name,objectName,properties);
 		addNode(node);
 		return node;
 	}
@@ -145,7 +145,11 @@ class GraphModel{
 
 class GraphParser{
 	private final JavaParser javaParser=new JavaParser();
-	public GraphModel load(Path projectFolder){
+	private Path projectFolder;
+	public GraphParser(Path projectFolder){
+		this.projectFolder=projectFolder;
+	}
+	public GraphModel load(){
 		GraphModel model=new GraphModel();
 		try{
 			Files.walkFileTree(projectFolder,new SimpleFileVisitor<Path>(){
@@ -158,6 +162,7 @@ class GraphParser{
 					return FileVisitResult.CONTINUE;
 				}
 			});
+			//TODO: parse features, feature managers, feature renderers, savers and models
 		}catch(IOException ex){
 			throw new UncheckedIOException(ex);
 		}
@@ -184,8 +189,11 @@ class GraphParser{
 			return List.of(permNode,rolesNode);
 		}
 		Optional<ClassOrInterfaceDeclaration> editableClass=cu.findAll(ClassOrInterfaceDeclaration.class).stream().filter(clazz->clazz.getExtendedTypes().stream().anyMatch(type->type instanceof ClassOrInterfaceType&&((ClassOrInterfaceType)type).getNameAsString().contains("Editable"))).findFirst();
-		if(editableClass.isPresent()) return List.of(new EditableNode(new EditableNode.FileEditablePhysicalNode(file.toFile())));
+		if(editableClass.isPresent()) return List.of(new EditableNode(new EditableNode.FileEditablePhysicalNode(file.toFile(),findPackage(file))));
 		return null;
+	}
+	private String findPackage(Path file){
+		return projectFolder.relativize(file).toString().replace(File.separatorChar,'.');
 	}
 }
 
@@ -919,6 +927,7 @@ public class ProjectGraph{
 			return model.getEntries();
 		}
 	}
+	private static final String BASE_PACKAGE="";
 	private static final ArrayList<DiagnosticService> diagnosticServices=new ArrayList<>();
 	private GraphModel model;
 	private GraphParser parser;
@@ -957,10 +966,8 @@ public class ProjectGraph{
 	 * @throws IOException
 	 */
 	public EditableNode createEditableNode(String name,String objectName,EditableNode.Property...properties) throws IOException{
-		String basePackage=resolveProjectPackage();
-		if(basePackage.isBlank()) throw new IllegalStateException("Unable to resolve project package");
-		EditableNode.FileEditablePhysicalNode physicalNode=new EditableNode.FileEditablePhysicalNode(name,objectName,basePackage,projectFolder,properties);
-		return model.createEditableNode(physicalNode,name,objectName,basePackage,properties);
+		EditableNode.FileEditablePhysicalNode physicalNode=new EditableNode.FileEditablePhysicalNode(name,objectName,BASE_PACKAGE,projectFolder,properties);
+		return model.createEditableNode(physicalNode,name,objectName,BASE_PACKAGE,properties);
 	}
 	public NavigatorNode createNavigatorNode(){
 		File file=new File(projectFolder,"resources/helppath.cfg");
@@ -970,20 +977,6 @@ public class ProjectGraph{
 	public void deleteNode(ProjectNode<?> node){
 		node.getPhysicalRepresentation().clear();
 		model.removeNode(node);
-	}
-	private String resolveProjectPackage(){
-		try{
-			Optional<Path> graphFile=Files.walk(projectFolder.toPath()).filter(p->p.getFileName().toString().equals("ProjectGraph.java")).findFirst();
-			if(graphFile.isPresent()){
-				Path rel=projectFolder.toPath().relativize(graphFile.get().getParent());
-				String pkg=rel.toString().replace(File.separatorChar,'.');
-				if(!pkg.isBlank()) return pkg;
-			}
-		}catch(IOException ex){
-			throw new UncheckedIOException(ex);
-		}
-		Package p=ProjectGraph.class.getPackage();
-		return p==null?"":p.getName();
 	}
 	public <T extends ProjectNode<T>> List<T> getNodes(Class<T> type){
 		return model.getNodes(type);
@@ -1001,11 +994,11 @@ public class ProjectGraph{
 		return model.getAllNodes();
 	}
 	public void reload(){
-
+		//FIXME reload
 	}
 	private void load(){
-		this.parser=new GraphParser();
-		this.model=parser.load(projectFolder.toPath());
+		this.parser=new GraphParser(projectFolder.toPath());
+		this.model=parser.load();
 		this.ui=new GraphUI(this);
 	}
 }

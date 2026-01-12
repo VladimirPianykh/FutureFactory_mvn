@@ -1,0 +1,13 @@
+package %2%s;
+
+import com.bpa4j.core.FeatureManager;
+import com.bpa4j.feature.Feature;
+import com.bpa4j.feature.FeatureTransmissionContract;
+
+public class %1$s extends FeatureManager<%1$s>{
+    @Override
+    protected Feature<%1$s> construct(){
+		//FIXME: implement %1$s
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+}

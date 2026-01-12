@@ -98,37 +98,39 @@ public class EditableNode extends ClassNode<EditableNode>{
 		}
 	}
 	public static class FileEditablePhysicalNode extends FileClassPhysicalNode<EditableNode>{
-		// For loading existing files
-		public FileEditablePhysicalNode(File file){
-			super(file);
+		/**
+		 * Constructs a new editable physical node with the given file and package.
+		 */
+		public FileEditablePhysicalNode(File file,String packageName){
+			super(file,packageName);
 		}
-		// For creating new files - PhysicalNode determines location
+		/**
+		 * Finds the package and file itself.
+		 */
 		public FileEditablePhysicalNode(String className,String objectName,String basePackage,File projectRoot,Property...properties){
-			super(computeFileLocation(className,basePackage,projectRoot));
-			// Throw if file already exists
-			if(file.exists()){ throw new IllegalStateException("File already exists: "+file.getAbsolutePath()); }
+			super(computeFileLocation(className,basePackage,projectRoot),computePackage(basePackage));
+			// Throw if file already exists. FIXME Can be enhanced with incremental naming.
+			if(getLocation().exists()) throw new IllegalStateException("File already exists: "+getLocation().getAbsolutePath());
+		}
+		private static String computePackage(String basePackage){
+			return basePackage+".editables.registered";
 		}
 		private static File computeFileLocation(String className,String basePackage,File projectRoot){
-			String packagePath=basePackage.replace('.','/');
-			return new File(projectRoot,"src/main/java/"+packagePath+"/editables/registered/"+className+".java");
+			String packagePath=computePackage(basePackage).replace('.','/');
+			return new File(projectRoot,"src/main/java/"+packagePath+"/"+className+".java");
 		}
 		@Override
 		public ClassModel<EditableNode> load(){
 			try{
 				String objectName=null;
-				String packageName=null;
 				List<Property> properties=new ArrayList<>();
-				CompilationUnit cu=StaticJavaParser.parse(file);
-				if(cu.getPackageDeclaration().isPresent()){
-					packageName=cu.getPackageDeclaration().get().getNameAsString();
-				}
+				CompilationUnit cu=StaticJavaParser.parse(getLocation());
 				Optional<ClassOrInterfaceDeclaration> clazz=cu.findAll(ClassOrInterfaceDeclaration.class).stream().filter(c->c.getExtendedTypes().stream().anyMatch(extType->extType instanceof ClassOrInterfaceType&&((ClassOrInterfaceType)extType).getNameAsString().equals("Editable"))).findFirst();
 
 				if(clazz.isPresent()){
 					String className=clazz.get().getNameAsString();
 					// Извлечь objectName из конструктора
 					Optional<ConstructorDeclaration> constructor=cu.findAll(ConstructorDeclaration.class).stream().filter(c->c.getNameAsString().equals(className)).findFirst();
-
 					if(constructor.isPresent()){
 						ConstructorDeclaration constr=constructor.get();
 						Optional<ExplicitConstructorInvocationStmt> superCall=constr.getBody().getStatements().stream().filter(stmt->stmt.isExplicitConstructorInvocationStmt()).map(stmt->stmt.asExplicitConstructorInvocationStmt()).findFirst();
@@ -146,7 +148,6 @@ public class EditableNode extends ClassNode<EditableNode>{
 							}
 						}
 					}
-
 					// Извлечь поля с аннотацией @EditorEntry
 					cu.findAll(FieldDeclaration.class).stream().filter(field->field.getAnnotationByName("EditorEntry").isPresent()).forEach(field->{
 						Optional<StringLiteralExpr> translation=field.getAnnotationByName("EditorEntry").flatMap(ann->ann.asNormalAnnotationExpr().getPairs().stream().filter(pair->pair.getNameAsString().equals("translation")).findFirst().map(pair->pair.getValue().asStringLiteralExpr()));
@@ -168,15 +169,14 @@ public class EditableNode extends ClassNode<EditableNode>{
 							properties.add(new Property(fieldName,propType));
 						}
 					});
-
-					// Найти TO DO-комментарии для свойств
+					// Найти fixme-комментарии для свойств
 					cu.findAll(LineComment.class).stream().filter(comment->comment.getContent().contains("FIXME: add property")).forEach(comment->{
 						Matcher m=Pattern.compile("FIXME:\\s*add property\\s*\"(.*?)\"").matcher(comment.getContent());
 						if(m.find()){
 							properties.add(new Property(m.group(1),null));
 						}
 					});
-					return new EditableModel(className,objectName,packageName,properties);
+					return new EditableModel(className,objectName,properties);
 				}else throw new IOException();
 			}catch(IOException ex){
 				throw new UncheckedIOException(ex);
@@ -185,10 +185,10 @@ public class EditableNode extends ClassNode<EditableNode>{
 		@Override
 		public void persist(NodeModel<EditableNode> model){
 			// Per contract: throws IllegalStateException if already associated with physical representation
-			if(file.exists()) throw new IllegalStateException("Physical representation already exists: "+file.getAbsolutePath());
+			if(getLocation().exists()) throw new IllegalStateException("Physical representation already exists: "+getLocation().getAbsolutePath());
 			EditableModel m=(EditableModel)model;
 			try{
-				if(file.getParentFile()!=null) file.getParentFile().mkdirs();
+				if(getLocation().getParentFile()!=null) getLocation().getParentFile().mkdirs();
 				Wrapper<Integer> index=new Wrapper<>(0);
 				String s=String.format("""
 						package %s;
@@ -202,8 +202,8 @@ public class EditableNode extends ClassNode<EditableNode>{
 								super("Нов %s");
 							}
 						}
-						""",m.getPackageName(),Editable.class.getName(),EditorEntry.class.getName(),m.getName(),m.getName(),m.getObjectName()==null?"":m.getObjectName());
-				Files.writeString(file.toPath(),s);
+						""",getPackageName(),Editable.class.getName(),EditorEntry.class.getName(),m.getName(),m.getName(),m.getObjectName()==null?"":m.getObjectName());
+				Files.writeString(getLocation().toPath(),s);
 			}catch(IOException ex){
 				throw new UncheckedIOException(ex);
 			}
@@ -212,9 +212,9 @@ public class EditableNode extends ClassNode<EditableNode>{
 		// Specialized methods for fine-grained updates
 		public void changePropertyType(Property p,Property.PropertyType type){
 			try{
-				while(!Files.isWritable(file.toPath()))
+				while(!Files.isWritable(getLocation().toPath()))
 					Thread.onSpinWait();
-				CompilationUnit cu=StaticJavaParser.parse(file);
+				CompilationUnit cu=StaticJavaParser.parse(getLocation());
 
 				if(p.getType()==null){
 					// fixme case
@@ -231,7 +231,7 @@ public class EditableNode extends ClassNode<EditableNode>{
 						field.get().setAllTypes(StaticJavaParser.parseType(type.toString()));
 					}
 				}
-				Files.writeString(file.toPath(),cu.toString());
+				Files.writeString(getLocation().toPath(),cu.toString());
 			}catch(IOException ex){
 				throw new UncheckedIOException(ex);
 			}
@@ -239,13 +239,13 @@ public class EditableNode extends ClassNode<EditableNode>{
 
 		public void changePropertyName(String oldName,String newName){
 			try{
-				while(!Files.isWritable(file.toPath()))
+				while(!Files.isWritable(getLocation().toPath()))
 					Thread.onSpinWait();
-				CompilationUnit cu=StaticJavaParser.parse(file);
+				CompilationUnit cu=StaticJavaParser.parse(getLocation());
 				Optional<FieldDeclaration> field=findFieldByTranslation(cu,oldName);
 				if(field.isPresent()){
 					field.get().getAnnotationByName("EditorEntry").flatMap(ann->ann.asNormalAnnotationExpr().getPairs().stream().filter(pair->pair.getNameAsString().equals("translation")).findFirst()).ifPresent(pair->pair.setValue(new StringLiteralExpr(newName)));
-					Files.writeString(file.toPath(),cu.toString());
+					Files.writeString(getLocation().toPath(),cu.toString());
 				}
 			}catch(IOException ex){
 				throw new UncheckedIOException(ex);
@@ -254,13 +254,13 @@ public class EditableNode extends ClassNode<EditableNode>{
 
 		public void addProperty(Property property,String varName){
 			try{
-				while(!Files.isWritable(file.toPath()))
+				while(!Files.isWritable(getLocation().toPath()))
 					Thread.onSpinWait();
-				CompilationUnit cu=StaticJavaParser.parse(file);
+				CompilationUnit cu=StaticJavaParser.parse(getLocation());
 				Optional<ClassOrInterfaceDeclaration> clazz=cu.findAll(ClassOrInterfaceDeclaration.class).stream().filter(c->c.getExtendedTypes().stream().anyMatch(extType->extType instanceof ClassOrInterfaceType&&((ClassOrInterfaceType)extType).getNameAsString().equals("Editable"))).findFirst();
 				if(clazz.isPresent()){
 					clazz.get().addField(property.getType().toString(),varName,Keyword.PUBLIC); // Simplified logic
-					Files.writeString(file.toPath(),cu.toString(),StandardOpenOption.CREATE);
+					Files.writeString(getLocation().toPath(),cu.toString(),StandardOpenOption.CREATE);
 				}
 			}catch(IOException ex){
 				throw new UncheckedIOException(ex);
@@ -269,9 +269,9 @@ public class EditableNode extends ClassNode<EditableNode>{
 
 		public void addProperties(List<Property> properties){
 			try{
-				while(!Files.isWritable(file.toPath()))
+				while(!Files.isWritable(getLocation().toPath()))
 					Thread.onSpinWait();
-				CompilationUnit cu=StaticJavaParser.parse(file);
+				CompilationUnit cu=StaticJavaParser.parse(getLocation());
 				Optional<ClassOrInterfaceDeclaration> clazz=cu.findAll(ClassOrInterfaceDeclaration.class).stream().filter(c->c.getExtendedTypes().stream().anyMatch(extType->extType instanceof ClassOrInterfaceType&&((ClassOrInterfaceType)extType).getNameAsString().equals("Editable"))).findFirst();
 				if(clazz.isPresent()){
 					for(int i=0;i<properties.size();++i){
@@ -281,7 +281,7 @@ public class EditableNode extends ClassNode<EditableNode>{
 						newField.addVariable(new VariableDeclarator(StaticJavaParser.parseType(prop.getType().toString()),"iVar"+(i+1)));
 						clazz.get().addMember(newField);
 					}
-					Files.writeString(file.toPath(),cu.toString(),StandardOpenOption.CREATE,StandardOpenOption.WRITE);
+					Files.writeString(getLocation().toPath(),cu.toString(),StandardOpenOption.CREATE,StandardOpenOption.WRITE);
 				}
 			}catch(IOException ex){
 				throw new UncheckedIOException(ex);
@@ -290,13 +290,13 @@ public class EditableNode extends ClassNode<EditableNode>{
 
 		public void removeProperty(String propertyName){
 			try{
-				while(!Files.isWritable(file.toPath()))
+				while(!Files.isWritable(getLocation().toPath()))
 					Thread.onSpinWait();
-				CompilationUnit cu=StaticJavaParser.parse(file);
+				CompilationUnit cu=StaticJavaParser.parse(getLocation());
 				Optional<FieldDeclaration> field=findFieldByTranslation(cu,propertyName);
 				if(field.isPresent()){
 					field.get().remove();
-					Files.writeString(file.toPath(),cu.toString());
+					Files.writeString(getLocation().toPath(),cu.toString());
 				}
 			}catch(IOException ex){
 				throw new UncheckedIOException(ex);
@@ -305,9 +305,9 @@ public class EditableNode extends ClassNode<EditableNode>{
 
 		public void changeObjectName(String objectName,String className){
 			try{
-				while(!Files.isWritable(file.toPath()))
+				while(!Files.isWritable(getLocation().toPath()))
 					Thread.onSpinWait();
-				CompilationUnit cu=StaticJavaParser.parse(file);
+				CompilationUnit cu=StaticJavaParser.parse(getLocation());
 				Optional<ConstructorDeclaration> constructor=cu.findAll(ConstructorDeclaration.class).stream().filter(c->c.getNameAsString().equals(className)).findFirst();
 				if(constructor.isPresent()){
 					ConstructorDeclaration constr=constructor.get();
@@ -316,7 +316,7 @@ public class EditableNode extends ClassNode<EditableNode>{
 						superCall.get().getArguments().set(0,new StringLiteralExpr(objectName==null?"":objectName));
 					}
 				}
-				Files.writeString(file.toPath(),cu.toString());
+				Files.writeString(getLocation().toPath(),cu.toString());
 			}catch(IOException ex){
 				throw new UncheckedIOException(ex);
 			}
@@ -334,15 +334,10 @@ public class EditableNode extends ClassNode<EditableNode>{
 		@Setter
 		private String objectName;
 		@Getter
-		@Setter
-		private String packageName;
-		@Getter
 		private final List<Property> properties;
-
-		public EditableModel(String name,String objectName,String packageName,List<Property> properties){
+		public EditableModel(String name,String objectName,List<Property> properties){
 			super(name);
 			this.objectName=objectName;
-			this.packageName=packageName;
 			this.properties=properties==null?new ArrayList<>():new ArrayList<>(properties);
 		}
 	}
@@ -352,16 +347,16 @@ public class EditableNode extends ClassNode<EditableNode>{
 	 */
 	public EditableNode(ClassPhysicalNode<EditableNode> physicalNode){
 		super(physicalNode);
-		if(!physicalNode.exists()) throw new IllegalArgumentException("The node "+physicalNode+" does not exist.");
+		if(!physicalNode.exists()) throw new IllegalArgumentException("The node "+physicalNode+" is not empty.");
 	}
 
 	/**
 	 * Writing constructor.
 	 */
-	public EditableNode(ClassPhysicalNode<EditableNode> physicalNode,String className,String objectName,String packageName,Property...properties){
+	public EditableNode(ClassPhysicalNode<EditableNode> physicalNode,String className,String objectName,Property...properties){
 		super(physicalNode);
 		if(physicalNode.exists()) throw new IllegalArgumentException("Physical representation already exists");
-		this.model=new EditableModel(className,objectName,packageName,Arrays.asList(properties));
+		this.model=new EditableModel(className,objectName,List.of(properties));
 		this.physicalNode.persist(model);
 	}
 	public static File findFile(String name,File parent) throws IOException{

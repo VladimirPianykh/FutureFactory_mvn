@@ -4,6 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import com.bpa4j.core.Root;
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import lombok.Getter;
 
 /**
@@ -11,71 +16,91 @@ import lombok.Getter;
  *
  * @author AI-generated
  */
-public class FeatureConfigNode implements ProjectNode<FeatureConfigNode>{
-	public static interface FeatureConfigPhysicalNode extends PhysicalNode<FeatureConfigNode>{
+public class FeatureConfigNode extends ClassNode<FeatureConfigNode>{
+	public static interface FeatureConfigPhysicalNode extends ClassPhysicalNode<FeatureConfigNode>{
 		@Override
 		FeatureConfigModel load();
 	}
-	public static class FileFeatureConfigPhysicalNode implements FeatureConfigPhysicalNode{
-		private final File file;
-		public FileFeatureConfigPhysicalNode(File file){
-			this.file=file;
+	public static class FileFeatureConfigPhysicalNode extends FileClassPhysicalNode<FeatureConfigNode> implements FeatureConfigPhysicalNode{
+		private static final String TEMPLATE_PATH="resources/graph/templates/feature_manager.txt";
+		public FileFeatureConfigPhysicalNode(File file,String packageName){
+			super(file,packageName);
 		}
-		@Override
-		public void clear(){
-			file.delete();
+		public FileFeatureConfigPhysicalNode(String className,String basePackage,File projectRoot){
+			super(computeFileLocation(className,basePackage,projectRoot),computePackage(basePackage));
+			//FIXME and this one too
+			if(getLocation().exists()) throw new IllegalStateException("File already exists: "+getLocation().getAbsolutePath());
 		}
-		@Override
-		public boolean exists(){
-			return file.exists();
+		private static String computePackage(String basePackage){
+			return basePackage+".features";
+		}
+		private static File computeFileLocation(String className,String basePackage,File projectRoot){
+			String packagePath=computePackage(basePackage).replace('.','/');
+			return new File(projectRoot,"src/main/java/"+packagePath+"/"+className+".java");
 		}
 		@Override
 		public void persist(NodeModel<FeatureConfigNode> model){
-			if(file.exists()){ throw new IllegalStateException("Physical representation already exists: "+file.getAbsolutePath()); }
+			if(getLocation().exists()) throw new IllegalStateException("Physical representation already exists: "+getLocation().getAbsolutePath());
 			try{
-				if(file.getParentFile()!=null) file.getParentFile().mkdirs();
-				String className=file.getName().replace(".java","");
-				String s="public class "+className+" {}";
-				Files.writeString(file.toPath(),s);
+				if(getLocation().getParentFile()!=null) getLocation().getParentFile().mkdirs();
+				assert getLocation().getName().endsWith(".java");
+				String className=getLocation().getName().substring(0,getLocation().getName().length()-5);
+				String s=getClassString(className,getPackageName());
+				Files.writeString(getLocation().toPath(),s);
 			}catch(IOException ex){
 				throw new UncheckedIOException(ex);
 			}
 		}
 		@Override
 		public FeatureConfigModel load(){
-			// TODO: #5 Parse FeatureConfigNode
-			return new FeatureConfigModel(null);
+			try{
+				CompilationUnit cu=StaticJavaParser.parse(getLocation());
+
+				TypeDeclaration<?> featureConfig=cu.getTypes().getFirst().get();
+				ClassOrInterfaceType managerClass=featureConfig.asClassOrInterfaceDeclaration().getExtendedTypes(0);
+				ClassOrInterfaceType typeArgument=managerClass.getTypeArguments().get().getFirst().get().asClassOrInterfaceType();
+
+				return new FeatureConfigModel(featureConfig.getName().asString(),typeArgument.getName().asString());
+			}catch(IOException ex){
+				throw new UncheckedIOException(ex);
+			}
 		}
-		public File getLocation(){
-			return file;
+		public String getClassString(String className,String pkg){
+			try{
+				String base=new String(Root.getResourceAsStream(TEMPLATE_PATH).readAllBytes());
+				return String.format(base,className,pkg);
+			}catch(IOException ex){
+				throw new UncheckedIOException(ex);
+			}
 		}
 	}
-
-	public static class FeatureConfigModel implements NodeModel<FeatureConfigNode>{
+	public static class FeatureConfigModel extends ClassModel<FeatureConfigNode>{
 		@Getter
 		private final String featureName;
-		public FeatureConfigModel(String featureName){
+		public FeatureConfigModel(String name,String featureName){
+			super(name);
 			this.featureName=featureName;
 		}
 	}
-
-	private final FeatureConfigPhysicalNode physicalNode;
-	private final FeatureConfigModel model;
-
+	/**
+	 * Reading constructor.
+	 */
 	public FeatureConfigNode(FeatureConfigPhysicalNode physicalNode){
-		this.physicalNode=physicalNode;
-		this.model=physicalNode.load();
+		super(physicalNode);
+		if(!physicalNode.exists())throw new IllegalArgumentException("Empty physical node cannot be loaded.");
 	}
-
-	@Override
-	public PhysicalNode<FeatureConfigNode> getPhysicalRepresentation(){
-		return physicalNode;
-	}
-	@Override
-	public FeatureConfigModel getModel(){
-		return model;
+	/**
+	 * Writing constructor.
+	 * @param physicalNode - storage
+	 * @param featureName - name of the feature implemeneted
+	 */
+	public FeatureConfigNode(FeatureConfigPhysicalNode physicalNode,String name,String featureName,String packageName){
+		super(physicalNode);
+		if(physicalNode.exists())throw new IllegalArgumentException("The physical node must be empty.");
+		model=new FeatureConfigModel(name,featureName);
+		physicalNode.persist(model);
 	}
 	public String getFeatureName(){
-		return model.getFeatureName();
+		return ((FeatureConfigModel)getModel()).getFeatureName();
 	}
 }

@@ -21,9 +21,13 @@ import lombok.Setter;
  */
 public abstract class ClassNode<T extends ClassNode<T>> implements ProjectNode<T>{
 	public static abstract class FileClassPhysicalNode<V extends ClassNode<V>> implements ClassPhysicalNode<V>{
-		protected File file;
-		public FileClassPhysicalNode(File file){
+		private File file;
+		private String packageName;
+		public FileClassPhysicalNode(File file,String packageName){
+			if(!file.getName().endsWith(".java"))throw new IllegalArgumentException("Only java files are permitted.");
+			if(!file.getParentFile().toPath().endsWith(packageName.replace('.','\\')))throw new IllegalArgumentException("Bad package name.");
 			this.file=file;
+			this.packageName=packageName;
 		}
 		@Override
 		public void clear(){
@@ -67,6 +71,9 @@ public abstract class ClassNode<T extends ClassNode<T>> implements ProjectNode<T
 		public File getLocation(){
 			return file;
 		}
+		public String getPackageName(){
+			return packageName;
+		}
 	}
 	public static interface ClassPhysicalNode<V extends ClassNode<V>>extends PhysicalNode<V>{
 		void rename(ProjectGraph project,String newName);
@@ -76,7 +83,7 @@ public abstract class ClassNode<T extends ClassNode<T>> implements ProjectNode<T
 	public static class ClassModel<V extends ClassNode<V>> implements NodeModel<V>{
 		@Getter
 		@Setter
-		protected String name;
+		private String name;
 		public ClassModel(String name){
 			this.name=name;
 		}

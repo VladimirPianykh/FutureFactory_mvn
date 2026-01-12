@@ -41,7 +41,6 @@ public interface ProjectNode<T extends ProjectNode<T>>{
 		void persist(NodeModel<V>node)throws IllegalStateException;
 		/**
 		 * Loads the node from this container.
-		 * @return
 		 */
 		NodeModel<V>load();
 		/**

@@ -1,0 +1,30 @@
+package %2$s;
+
+import com.bpa4j.feature.FeatureRenderer;
+import com.bpa4j.feature.FeatureTransmissionContract;
+import com.bpa4j.feature.FeatureRenderingContext;
+
+/**
+ * Auto-generated feature renderer.
+ */
+public class %1$s extends FeatureRenderer<FeatureTransmissionContract> {
+	private final FeatureTransmissionContract contract;
+	public %1$s(FeatureTransmissionContract contract) {
+		this.contract = contract;
+	}
+
+	@Override
+	public FeatureTransmissionContract getTransmissionContract() {
+		return contract;
+	}
+
+	@Override
+	public void render(FeatureRenderingContext ctx) {
+		// FIXME: implement rendering logic for %1$s
+	}
+
+	@Override
+	public void renderPreview(FeatureRenderingContext ctx) {
+		// FIXME: implement preview generation logic for %1$s
+	}
+}

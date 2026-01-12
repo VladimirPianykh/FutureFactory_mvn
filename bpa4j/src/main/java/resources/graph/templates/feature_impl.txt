@@ -1,0 +1,17 @@
+package %2$s;
+
+import com.bpa4j.feature.FeatureTransmissionContract;
+
+public class %1$s implements FeatureTransmissionContract {
+	private String name;
+
+	public %1$s(String name) {
+		this.name = name;
+	}
+	@Override
+	public String getFeatureName() {
+		return name;
+	}
+
+	//FIXME: implement %1$s
+}
