@@ -27,7 +27,7 @@ public class FlagWEditor implements EditorEntryBase{
 	 * @param f - field to configure for
 	 * @param editor - an editor to wrap
 	 * @param defaultValue - a value that used if flag is not set
-	 * @param initValue - a value that is set when a flag have just been selected
+	 * @param initValue - a value that is set when a flag has just been selected
 	 */
 	public static void configure(Field f,Class<? extends EditorEntryBase>editor,Object defaultValue,Supplier<?>initValue){
 		types.put(f,editor);

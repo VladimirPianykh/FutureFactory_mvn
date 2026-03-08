@@ -39,12 +39,12 @@ public class StageMapModule implements EditorModule{
 			HButton b=new HButton(10,5){
 				public void paint(Graphics g){
 					g.setClip(new Ellipse2D.Double(0,0,getWidth(),getHeight()));
-					g.setColor(ii==p.currentStage?(canPress?Color.CYAN:new Color(0,100,100)):ii<p.currentStage?(canPress?Color.GREEN:new Color(0,100,0)):Color.LIGHT_GRAY);
+					g.setColor(ii==p.getStageIndex()?(canPress?Color.CYAN:new Color(0,100,100)):ii<p.getStageIndex()?(canPress?Color.GREEN:new Color(0,100,0)):Color.LIGHT_GRAY);
 					g.fillOval(0,0,getWidth(),getHeight());
 					((Graphics2D)g).setStroke(new BasicStroke(getHeight()/30));
 					g.setColor(Color.DARK_GRAY);
 					g.drawOval(0,0,getWidth(),getHeight());
-					if(canPress&&ii==p.currentStage){
+					if(canPress&&ii==p.getStageIndex()){
 						int a=scale*8;
 						if(getModel().isPressed())a+=50;
 						g.setColor(new Color(0,0,0,a));
@@ -55,7 +55,7 @@ public class StageMapModule implements EditorModule{
 					g.drawString(p.stages[ii].name,(getWidth()-fm.stringWidth(p.stages[ii].name))/2,(getHeight()+fm.getAscent()+fm.getLeading()-fm.getDescent())/2);
 				}
 			};
-			if(canPress&&i==p.currentStage){
+			if(canPress&&i==p.getStageIndex()){
 				b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 				b.addActionListener(e->{
 					if(p.approve(""))editor.dispose();

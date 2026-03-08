@@ -43,7 +43,7 @@ public class TestGen<T extends Editable> implements Supplier<T>{
 	private EditableGroup<T> target;
 	private int currentIndex;
 	private Map<String, Object> fieldOverrides=new HashMap<>();
-	private Object nameSupplier;
+	private Supplier<String> nameSupplier;
 	private String namePattern;
 	private NameProvider nameProvider;
 	private Map<Class<?>, Supplier<?>> defaultSources=new HashMap<>();
@@ -78,9 +78,19 @@ public class TestGen<T extends Editable> implements Supplier<T>{
 		this.template=template;
 		return this;
 	}
-	public TestGen<T> withName(Object valueOrSupplier){
-		nameSupplier=valueOrSupplier;
+	public TestGen<T> withName(String name){
+		return withName(()->name);
+	}
+	public TestGen<T> withName(Supplier<String>name){
+		nameSupplier=name;
 		return this;
+	}
+	public TestGen<T> withName(List<String>names){
+		int[]i={0};
+		return withName(()->names.get(i[0]++));
+	}
+	public TestGen<T> withName(String...names){
+		return withName(List.of(names));
 	}
 	public TestGen<T> withNamePattern(String pattern){
 		namePattern=pattern;
@@ -198,8 +208,7 @@ public class TestGen<T extends Editable> implements Supplier<T>{
 				}
 			}
 			if(p!=null)e.name=p.provideName(e);
-			else if(nameSupplier instanceof Supplier)e.name=((Supplier<String>)nameSupplier).get();
-			else if(nameSupplier instanceof String)e.name=(String)nameSupplier;
+			else if(nameSupplier!=null)e.name=((Supplier<String>)nameSupplier).get();
 			else if(namePattern!=null)e.name=String.format(namePattern,currentIndex);
 			else if(e instanceof AbstractCustomer)e.name=DefaultSourceRegistry.names[currentIndex%DefaultSourceRegistry.names.length];
 			else e.name+=" #"+(int)(Math.random()*1000000);

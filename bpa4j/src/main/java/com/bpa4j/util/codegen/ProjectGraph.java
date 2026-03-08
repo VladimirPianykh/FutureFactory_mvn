@@ -56,20 +56,20 @@ import javax.swing.JTextField;
 import javax.swing.TransferHandler;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
-import javax.swing.plaf.nimbus.NimbusLookAndFeel;
 
 import com.bpa4j.Wrapper;
 import com.bpa4j.core.ProgramStarter;
 import com.bpa4j.core.Root;
 import com.bpa4j.ui.Message;
 import com.bpa4j.util.ParseUtils;
-import com.bpa4j.util.SprintUI;
 import com.bpa4j.util.ParseUtils.StandardSkipper;
+import com.bpa4j.util.SprintUI;
 import com.bpa4j.util.codegen.ProjectGraph.EditableNode.Property;
 import com.bpa4j.util.codegen.ProjectGraph.EditableNode.Property.PropertyType;
-import com.bpa4j.util.codegen.ProjectGraph.RolesNode.RoleRepresentation;
 import com.bpa4j.util.codegen.ProjectGraph.NavigatorNode.HelpEntry;
 import com.bpa4j.util.codegen.ProjectGraph.NavigatorNode.Instruction;
+import com.bpa4j.util.codegen.ProjectGraph.RolesNode.RoleRepresentation;
+import com.formdev.flatlaf.FlatLightLaf;
 
 public class ProjectGraph{
 	public static abstract class ProjectNode{
@@ -1039,7 +1039,7 @@ public class ProjectGraph{
 	}
 	public void show(){
 		try{
-			UIManager.setLookAndFeel(new NimbusLookAndFeel());
+			UIManager.setLookAndFeel(new FlatLightLaf());
 		}catch(UnsupportedLookAndFeelException ex){throw new AssertionError("The BPALookAndFeel must be supported.",ex);}
 		JFrame f=new JFrame();
 		f.setUndecorated(true);

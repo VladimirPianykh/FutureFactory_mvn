@@ -25,21 +25,24 @@ public abstract class Processable extends Editable{
 		public Stage(String name,Permission approver){this(name,approver,null,0);}
 	}
 	public Stage[]stages;
-	public int currentStage;
+	private int stageIndex;
+	public int getStageIndex() {
+		return stageIndex;
+	}
 	public Processable(String name,Stage...stages){super(name);this.stages=stages.clone();}
-	public Stage getStage(){return stages[currentStage];}
-	public boolean isLastStage(){return currentStage==stages.length-1;}
+	public Stage getStage(){return stages[stageIndex];}
+	public boolean isLastStage(){return stageIndex==stages.length-1;}
 	public boolean approve(String comment){
 		if(isLastStage())throw new IllegalStateException("Cannot approve an object with the last stage.");
 		if(getStage().checker==null||getStage().checker.apply(this)){
 			records.add(new ActionRecord('+'+getStage().name,User.getActiveUser()));
-			++currentStage;
+			++stageIndex;
 			if(!comment.isBlank())records.add(new ActionRecord('>'+User.getActiveUser().login+':'+comment,User.getActiveUser()));
 			return true;
 		}else return false;
 	}
 	public void reject(String comment){
-		currentStage=getStage().rejectionIndex;
+		stageIndex=getStage().rejectionIndex;
 		records.add(new ActionRecord('-'+getStage().name,User.getActiveUser()));
 		if(!comment.isBlank())records.add(new ActionRecord('>'+User.getActiveUser().login+':'+comment,User.getActiveUser()));
 	}

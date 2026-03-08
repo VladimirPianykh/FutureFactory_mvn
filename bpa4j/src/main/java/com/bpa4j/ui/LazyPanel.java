@@ -17,7 +17,10 @@ public class LazyPanel extends JPanel{
 	public void paint(Graphics g) {
 		if(flag){
 			filler.accept(this);
+			revalidate();
+			repaint();
 			flag=false;
+			return;
 		}
 		super.paint(g);
 	}

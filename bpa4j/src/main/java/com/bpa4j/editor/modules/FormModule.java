@@ -215,14 +215,14 @@ public class FormModule implements EditorModule{
 				try{
 					editable.name=nameField.getText();
 					for(int i=0;i<editableFields.size();++i)if(!(savers.get(i)instanceof EmptySaver))editableFields.get(i).set(editable,savers.get(i).get());
-					completer.var.completeObject(editable);
+					completer.var.completeObject(editable,demo.var.get(),w.var);
 					editor.dispose();
 				}catch(ReflectiveOperationException ex){throw new IllegalStateException(ex);}
 			});
 			complete.setBounds(ok.getX()+ok.getWidth()*3/2,ok.getY(),ok.getHeight(),ok.getHeight());
 			complete.setToolTipText("Заполнить автоматически");
 			tab.add(complete);
-			complete.setVisible(completer.var.isCompletable(editable,0));
+			complete.setVisible(completer.var.isCompletable(editable,demo.var.get(),0));
 		}
 		final HButton fComplete=complete;
 		if(!isNew){
@@ -244,7 +244,7 @@ public class FormModule implements EditorModule{
 					if(w.var==0)c.setText("Отмена");
 					ok.setText("Далее");
 					ok.setBackground(Color.GRAY);
-					if(fComplete!=null)fComplete.setVisible(completer.var.isCompletable(editable,0));
+					if(fComplete!=null)fComplete.setVisible(completer.var.isCompletable(editable,demo.var.get(),0));
 				}
 			});
 			c.setBounds(editor.getWidth()*2/5,editor.getHeight()*12/15,editor.getWidth()/5,editor.getHeight()/20);
@@ -283,7 +283,7 @@ public class FormModule implements EditorModule{
 						layout.show(form,String.valueOf(w.var=0));
 						p.setValue(0);
 						new Message(verifierMsg,Color.RED);
-						if(fComplete!=null)fComplete.setVisible(completer.var.isCompletable(editable,0));
+						if(fComplete!=null)fComplete.setVisible(completer.var.isCompletable(editable,demo.var.get(),0));
 					}
 				}else{
 					p.setValue(++w.var);
@@ -305,7 +305,7 @@ public class FormModule implements EditorModule{
 						for(int i=0;i<editableFields.size();++i)if(!(savers.get(i)instanceof EmptySaver))results.addElement(editableFields.get(i).getAnnotation(EditorEntry.class).translation()+": "+savers.get(i).get());
 					}
 					if(fCancel!=null)fCancel.setText("Назад");
-					if(fComplete!=null)fComplete.setVisible(completer.var.isCompletable(editable,w.var));
+					if(fComplete!=null)fComplete.setVisible(completer.var.isCompletable(editable,demo.var.get(),w.var));
 				}
 			}catch(ReflectiveOperationException ex){throw new IllegalStateException(ex);}
 		});

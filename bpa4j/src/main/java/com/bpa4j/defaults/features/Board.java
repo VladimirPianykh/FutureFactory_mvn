@@ -47,7 +47,7 @@ import com.bpa4j.ui.HButton;
 /**
  * A board with objects of the given type.
  * Similar classes are called Board-like.
- * </p>
+ * <p>
  * Generally an editable table,
  * which can be supplemented with configuration components: filterrs, etc.
  */

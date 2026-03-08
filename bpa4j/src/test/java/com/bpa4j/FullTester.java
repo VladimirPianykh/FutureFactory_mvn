@@ -106,10 +106,10 @@ public final class FullTester{
 	@Input(completer=MyProcessable.Completer.class,nameProvider=MyProcessable.NameProvider.class)
 	public static class MyProcessable extends Processable{
 		public static class Completer implements com.bpa4j.editor.Completer{
-			public boolean isCompletable(Editable editable,int fieldsEdited){
+			public boolean isCompletable(Editable original,Editable editable,int fieldsEdited){
 				return fieldsEdited>=2;
 			}
-			public void completeObject(Editable editable){
+			public void completeObject(Editable original,Editable editable,int fieldsEdited){
 				MyProcessable e=(MyProcessable)editable;
 				e.doubleField=e.intField*2;
 			}
@@ -201,7 +201,7 @@ public final class FullTester{
 	}
 	private FullTester(){}
 	public static void main(String[]args)throws ReflectiveOperationException,URISyntaxException{
-		// new ProjectGraphV2(new File("C:/Users/user/Desktop/IT/Java/1C/NTO training/team/T1/NTO_TRAINING/src/main/java")).show();
+		new com.bpa4j.util.codegen.ProjectGraph(new java.io.File("C:/Users/user/Desktop/IT/Java/1C/NTO training/team/T1/NTO_TRAINING/src/main/java")).show();
 		Navigator.init();
 		ProgramStarter.welcomeMessage="";
 		ProgramStarter.authRequired=false;

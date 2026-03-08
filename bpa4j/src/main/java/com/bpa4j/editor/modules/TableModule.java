@@ -6,6 +6,7 @@ import java.awt.Dimension;
 import java.awt.FontMetrics;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -16,6 +17,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 
+import com.bpa4j.defaults.table.FieldCellRenderer;
 import com.bpa4j.defaults.table.FieldCellValue;
 import com.bpa4j.defaults.table.FormCellEditor;
 import com.bpa4j.editor.EditorEntry;
@@ -51,13 +53,15 @@ public class TableModule implements EditorModule{
 	}
 	public JPanel createTab(JDialog editor,Editable editable,boolean isNew,Runnable deleter){
 		try{
+			if(f.get(editable)==null)throw new IllegalStateException("The field designated for TableModule must be non-null.");
 			@SuppressWarnings("unchecked")
-			ArrayList<Object>a=(ArrayList<Object>)f.get(editable);
+			Collection<Object>a=(Collection<Object>)f.get(editable);
 			JPanel tab=new JPanel(new BorderLayout());
 			tab.setSize(editor.getSize());
 			JTable t=new JTable();
 			t.setPreferredSize(new Dimension(tab.getWidth()*2/3,tab.getHeight()*2/3));
 			t.setDefaultEditor(Object.class,new FormCellEditor());
+			t.setDefaultRenderer(Object.class,new FieldCellRenderer());
 			List<Field>fields=Stream.of(type.getFields()).filter(f->f.isAnnotationPresent(EditorEntry.class)).toList();
 			DefaultTableModel m=new DefaultTableModel(fields.stream().map(f->f.getAnnotation(EditorEntry.class).translation()).toArray(),0);
 			for(Object o:a){

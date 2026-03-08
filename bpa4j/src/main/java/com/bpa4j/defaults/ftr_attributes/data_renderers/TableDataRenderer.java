@@ -4,6 +4,7 @@ import java.awt.*;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.swing.BorderFactory;
@@ -28,9 +29,14 @@ public class TableDataRenderer<T>implements Supplier<JComponent>{
 	private Supplier<ArrayList<T>>elementSupplier;
 	private String title;
 	private boolean allowExport;
+	private Consumer<JTable>tableDecorator;
 	public TableDataRenderer(Supplier<ArrayList<T>>elementSupplier){this.elementSupplier=elementSupplier;}
 	public TableDataRenderer(Supplier<ArrayList<T>>elementSupplier,String title){this(elementSupplier);this.title=title;}
 	public TableDataRenderer(Supplier<ArrayList<T>>elementSupplier,String title,boolean allowExport){this(elementSupplier,title);this.allowExport=allowExport;}
+	public TableDataRenderer<T>addTableDecorator(Consumer<JTable>tableDecorator){
+		this.tableDecorator=tableDecorator;
+		return this;
+	}
 	@SuppressWarnings("PMD.UseArraysAsList")
 	public JComponent get(){
 		ArrayList<T>a=elementSupplier.get();
@@ -42,6 +48,7 @@ public class TableDataRenderer<T>implements Supplier<JComponent>{
 		JTable table=new JTable(m);
 		table.setDefaultEditor(Object.class,new EmptyCellEditor());
 		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		if(tableDecorator!=null)tableDecorator.accept(table);
 		for(T t:a){
 			Object[]o=new Object[fields.size()];
 			for(int i=0;i<o.length;++i)try{

@@ -30,48 +30,53 @@ public class SelectFromEditor implements EditorEntryBase{
 	 * @param elementSupplier - a Function (accepting the editable object) to get elements from
 	 */
 	public static void configure(Field f,Function<Editable,ArrayList<?>>elementSupplier){elementSuppliers.put(f,elementSupplier);}
-	@SuppressWarnings("unchecked")
-	public JComponent createEditorBase(Object o,Field f,Wrapper<Supplier<?>>saver,Wrapper<EditableDemo>demo){
-		Wrapper<Supplier<?>>w=new Wrapper<Supplier<?>>(()->{
-			try{return f.get(o);}catch(ReflectiveOperationException ex){throw new IllegalStateException(ex);}
+	@SuppressWarnings({ "unchecked", "null" })
+	public JComponent createEditorBase(Object o, Field f, Wrapper<Supplier<?>> saver, Wrapper<EditableDemo> demo) {
+		Wrapper<Supplier<?>> w = new Wrapper<>(()->{
+			try { return f.get(o); } catch (ReflectiveOperationException ex) { throw new IllegalStateException(ex); }
 		});
-		saver.var=()->w.var.get();
-		return new LazyPanel(panel->{
-			try{
-				ArrayList<?>elements=elementSuppliers.get(f).apply(demo.var.get());
-				if(Collection.class.isAssignableFrom(f.getType())){
-					JMenu m=SprintUI.createMenu();
-					ArrayList<Object>c=new ArrayList<>();
-					c.addAll((Collection<Object>)f.get(o));
-					for(Object element:elements){
-						JCheckBoxMenuItem item=new JCheckBoxMenuItem(String.valueOf(element));
-						item.setSelected(c.contains(element));
-						item.addActionListener(e->{
-							if(item.isSelected())c.add(element);
-							else c.remove(element);
-						});
-						m.add(item);
-					}
-					w.var=()->{
-						try{
-							Collection<Object>l=(Collection<Object>)f.getType().getDeclaredConstructor().newInstance();
-							l.addAll(c);
-							return l;
-						}catch(ReflectiveOperationException ex){throw new IllegalStateException(ex);}
-					};
-					panel.add(SprintUI.wrap(m));
-				}else{
-					JComboBox<Object>c=new JComboBox<>();
-					for(Object item:elements.toArray())c.addItem(item);
-					c.setSelectedItem(f.get(o));
-					w.var=()->{
-						try{
-							return c.getSelectedItem()==null&&f.getType().isPrimitive()?f.get(o):c.getSelectedItem();
-						}catch(IllegalAccessException ex){throw new IllegalStateException(ex);}
-					};
-					panel.add(c);
+		saver.var = ()-> w.var.get();
+
+		boolean isCollection = Collection.class.isAssignableFrom(f.getType());
+		Object currentValue;
+		try { currentValue = f.get(o); } catch (IllegalAccessException ex) { throw new IllegalStateException(ex); }
+
+		ArrayList<Object> c;
+		if (isCollection) {
+			c = new ArrayList<>();
+			c.addAll((Collection<Object>) currentValue);
+		} else {
+			c = null;
+		}
+
+		return new LazyPanel(panel -> {
+			ArrayList<?> elements = elementSuppliers.get(f).apply(demo.var.get());
+			if (isCollection) {
+				JMenu m = SprintUI.createMenu();
+				for (Object element : elements) {
+					JCheckBoxMenuItem item = new JCheckBoxMenuItem(String.valueOf(element));
+					item.setSelected(c.contains(element));
+					item.addActionListener(e -> {
+						if (item.isSelected()) c.add(element);
+						else c.remove(element);
+					});
+					m.add(item);
 				}
-			}catch(IllegalAccessException ex){throw new IllegalStateException(ex);}
+				w.var = () -> {
+					try {
+						Collection<Object> l = (Collection<Object>) f.getType().getDeclaredConstructor().newInstance();
+						l.addAll(c);
+						return l;
+					} catch (ReflectiveOperationException ex) { throw new IllegalStateException(ex); }
+				};
+				panel.add(SprintUI.wrap(m));
+			} else {
+				JComboBox<Object> combo = new JComboBox<>();
+				for (Object item : elements.toArray()) combo.addItem(item);
+				combo.setSelectedItem(currentValue);
+				w.var = () -> combo.getSelectedItem() == null && f.getType().isPrimitive() ? currentValue : combo.getSelectedItem();
+				panel.add(combo);
+			}
 		});
 	}
 }

@@ -158,10 +158,10 @@
 		"prefix":"_completer",
 		"body":[
 			"public static class Completer implements com.bpa4j.editor.Completer{",
-				"\tpublic boolean isCompletable(Editable editable,int fieldsEdited){",
+				"\tpublic boolean isCompletable(Editable original,Editable editable,int fieldsEdited){",
 					"\t\t${1:return true;}",
 				"\t}",
-				"\tpublic void completeObject(Editable editable){$0}",
+				"\tpublic void completeObject(Editable original,Editable editable,int fieldsEdited){$0}",
 			"}"
 		],
 		"description":""
@@ -170,7 +170,7 @@
 		"scope":"java",
 		"prefix":"_nameProvider",
 		"body":[
-			"public class NameProvider implements com.bpa4j.editor.NameProvider{",
+			"public static class NameProvider implements com.bpa4j.editor.NameProvider{",
 				"\tpublic String provideName(Editable editable){",
 					"\t\t${0:return editable.name;}",
 				"\t}",
@@ -182,7 +182,7 @@
 		"scope":"java",
 		"prefix":"_infoProvider",
 		"body":[
-			"public class InfoProvider implements com.bpa4j.editor.InfoProvider{",
+			"public static class InfoProvider implements com.bpa4j.editor.InfoProvider{",
 				"\tpublic JComponent provideInfo(Editable original,EditableDemo editable){",
 					"\t\t${0:return new JLabel(\"Нет данных\");}",
 				"\t}",
@@ -203,5 +203,51 @@
 			"}"
 		],
 		"description":""
+	},
+	"startDate and endDate fields":{
+		"scope":"java",
+		"prefix":"_dates",
+		"body":[
+			"@EditorEntry(translation=\"${1:Дата начала}\")",
+			"public LocalDate startDate=LocalDate.now();",
+			"@EditorEntry(translation=\"${2:Дата окончания}\")",
+			"public LocalDate endDate=LocalDate.now().plusDays(7);",
+			"$0"
+		],
+		"description":"Add startDate/endDate with EditorEntry"
+	},
+	"startTime and endTime fields":{
+		"scope":"java",
+		"prefix":"_times",
+		"body":[
+			"@EditorEntry(translation=\"${1:Время начала}\")",
+			"public LocalDateTime startTime=LocalDateTime.now();",
+			"@EditorEntry(translation=\"${2:Время окончания}\")",
+			"public LocalDateTime endTime=LocalDateTime.now().plusHours(5);",
+			"$0"
+		],
+		"description":"Add startDate/endDate with EditorEntry"
+	},
+	"Creation date fields":{
+		"scope":"java",
+		"prefix":"_crdate",
+		"body":[
+			"@EditorEntry(translation=\"${1:Дата создания}\")",
+			"public LocalDate date=LocalDate.now();",
+			"$0"
+		],
+		"description":"Add startDate/endDate with EditorEntry"
+	},
+	"Static init block (for SelectFromEditor.configure, FlagWEditor.configure, etc.)":{
+		"scope":"java",
+		"prefix":"_static",
+		"body":[
+			"static{",
+				"\ttry{",
+					"\t\t$0",
+				"\t}catch(Exception ex){throw new RuntimeException(ex);}",
+			"}"
+		],
+		"description":"static try-catch for reflective config"
 	}
 }
